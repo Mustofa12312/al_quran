@@ -1,4 +1,4 @@
-import 'dart:convert';
+// import 'dart:convert';
 import 'package:al_quran_fix/globals.dart';
 import 'package:al_quran_fix/models/surah.dart';
 import 'package:al_quran_fix/screens/detail_screen.dart';

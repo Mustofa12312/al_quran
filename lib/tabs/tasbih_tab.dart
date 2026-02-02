@@ -15,39 +15,38 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
   int target = 33;
   bool vibration = true;
 
-  late AnimationController beadController;
+  late AnimationController tapAnim;
 
   @override
   void initState() {
     super.initState();
 
-    beadController = AnimationController(
+    tapAnim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
-      lowerBound: -0.15,
-      upperBound: 0.15,
+      duration: const Duration(milliseconds: 120),
+      lowerBound: 0.96,
+      upperBound: 1.0,
+      value: 1.0,
     );
 
-    HardwareKeyboard.instance.addHandler(_onKeyEvent);
+    HardwareKeyboard.instance.addHandler(_onKey);
   }
 
   @override
   void dispose() {
-    HardwareKeyboard.instance.removeHandler(_onKeyEvent);
-    beadController.dispose();
+    HardwareKeyboard.instance.removeHandler(_onKey);
+    tapAnim.dispose();
     super.dispose();
   }
 
-  // =======================
-  // TOMBOL VOLUME
-  // =======================
-  bool _onKeyEvent(KeyEvent event) {
-    if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.audioVolumeUp) {
+  // ================= VOLUME =================
+  bool _onKey(KeyEvent e) {
+    if (e is KeyDownEvent) {
+      if (e.logicalKey == LogicalKeyboardKey.audioVolumeUp) {
         increment();
         return true;
       }
-      if (event.logicalKey == LogicalKeyboardKey.audioVolumeDown) {
+      if (e.logicalKey == LogicalKeyboardKey.audioVolumeDown) {
         decrement();
         return true;
       }
@@ -55,69 +54,60 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
     return false;
   }
 
-  // =======================
-  // VIBRATION
-  // =======================
-  Future<void> vibrateSoft() async {
-    if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(duration: 70, amplitude: 180);
+  // ================= VIBRATION =================
+  Future<void> softVibrate() async {
+    if (vibration && (await Vibration.hasVibrator() ?? false)) {
+      Vibration.vibrate(duration: 40);
     }
   }
 
-  Future<void> vibrateStrong() async {
+  Future<void> strongVibrate() async {
     if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(pattern: [0, 200, 120, 200], intensities: [255, 255]);
+      Vibration.vibrate(pattern: [0, 120, 80, 120]);
     }
   }
 
-  // =======================
-  // COUNTER LOGIC
-  // =======================
+  // ================= LOGIC =================
   void increment() {
-    beadController.forward(from: 0);
+    tapAnim.forward(from: 0.96);
     setState(() => counter++);
 
-    if (target > 0 && counter >= target) {
-      vibrateStrong();
+    if (counter >= target) {
+      strongVibrate();
       counter = 0;
-    } else if (vibration) {
-      vibrateSoft();
+    } else {
+      softVibrate();
     }
   }
 
   void decrement() {
     if (counter > 0) {
-      beadController.forward(from: 0);
+      tapAnim.forward(from: 0.96);
       setState(() => counter--);
-      if (vibration) vibrateSoft();
+      softVibrate();
     }
   }
 
   void reset() {
-    vibrateStrong();
+    strongVibrate();
     setState(() => counter = 0);
   }
 
-  // =======================
-  // SET TARGET MANUAL
-  // =======================
-  void setTargetDialog() {
-    final controller = TextEditingController(text: target.toString());
+  // ================= TARGET =================
+  void setTarget() {
+    final c = TextEditingController(text: target.toString());
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A2036),
-        title: const Text(
-          "Set Target Tasbih",
-          style: TextStyle(color: Colors.white),
-        ),
+        backgroundColor: const Color(0xFF1E2849),
+        title: const Text("Set Target", style: TextStyle(color: Colors.white)),
         content: TextField(
-          controller: controller,
+          controller: c,
           keyboardType: TextInputType.number,
           style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
-            hintText: "Masukkan angka bebas",
+            hintText: "Masukkan angka",
             hintStyle: TextStyle(color: Colors.white54),
           ),
         ),
@@ -126,12 +116,12 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
             onPressed: () => Navigator.pop(context),
             child: const Text("Batal"),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
-              final value = int.tryParse(controller.text);
-              if (value != null && value > 0) {
+              final v = int.tryParse(c.text);
+              if (v != null && v > 0) {
                 setState(() {
-                  target = value;
+                  target = v;
                   counter = 0;
                 });
               }
@@ -144,134 +134,135 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
     );
   }
 
-  // =======================
-  // UI
-  // =======================
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1324),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-
-              Text(
-                "Digital Tasbih",
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // COUNTER
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.all(35),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8A2EFF), Color(0xFF6100FF)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "$counter",
-                  style: GoogleFonts.poppins(
-                    fontSize: 60,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // BIJI TASBIH
-              AnimatedBuilder(
-                animation: beadController,
-                builder: (_, child) {
-                  return Transform.rotate(
-                    angle: beadController.value,
-                    child: child,
-                  );
-                },
-                child: GestureDetector(
-                  onTap: increment,
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF9C27FF), Color(0xFF6200EA)],
-                      ),
-                    ),
-                    child: const Icon(Icons.add, size: 80, color: Colors.white),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // TARGET SETTING
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Target: $target",
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  const SizedBox(width: 12),
-                  TextButton(
-                    onPressed: setTargetDialog,
-                    child: const Text("Ubah"),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // RESET + VIBRATION
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: reset,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text("Reset"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                    ),
-                  ),
-                  Row(
+      backgroundColor: const Color(0xFF121931),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        "Vibration",
-                        style: TextStyle(color: Colors.white),
+                      const SizedBox(height: 20),
+
+                      Text(
+                        "Tasbih",
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
-                      Switch(
-                        value: vibration,
-                        onChanged: (v) => setState(() => vibration = v),
+
+                      const SizedBox(height: 50),
+
+                      Text(
+                        "$counter",
+                        style: GoogleFonts.poppins(
+                          fontSize: 72,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
                       ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        "Target $target",
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.white54,
+                        ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      ScaleTransition(
+                        scale: tapAnim,
+                        child: GestureDetector(
+                          onTap: increment,
+                          child: Container(
+                            width: 140,
+                            height: 140,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFF9055FF),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(.4),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.add,
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: setTarget,
+                            child: const Text("Ubah Target"),
+                          ),
+                          const SizedBox(width: 20),
+                          TextButton(
+                            onPressed: reset,
+                            child: const Text("Reset"),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "Vibrasi",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          Switch(
+                            value: vibration,
+                            activeColor: const Color(0xFF9055FF),
+                            onChanged: (v) => setState(() => vibration = v),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      Text(
+                        "Gunakan tombol volume untuk dzikir",
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.white38,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
                     ],
                   ),
-                ],
+                ),
               ),
-
-              const SizedBox(height: 25),
-
-              const Text(
-                "Gunakan tombol volume untuk menambah / mengurangi",
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-
-              const SizedBox(height: 40),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
