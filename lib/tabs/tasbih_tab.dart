@@ -21,7 +21,6 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    // animasi biji tasbih berputar
     beadController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -29,7 +28,6 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
       upperBound: 0.15,
     );
 
-    // aktifkan tombol volume
     HardwareKeyboard.instance.addHandler(_onKeyEvent);
   }
 
@@ -40,7 +38,9 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // tombol volume
+  // =======================
+  // TOMBOL VOLUME
+  // =======================
   bool _onKeyEvent(KeyEvent event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.audioVolumeUp) {
@@ -55,37 +55,36 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
     return false;
   }
 
-  // vibrasi
+  // =======================
+  // VIBRATION
+  // =======================
   Future<void> vibrateSoft() async {
     if (await Vibration.hasVibrator() ?? false) {
       Vibration.vibrate(duration: 70, amplitude: 180);
     }
   }
 
-  Future<void> vibrateStrong3x() async {
+  Future<void> vibrateStrong() async {
     if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(
-        pattern: [0, 200, 120, 200, 120, 200],
-        intensities: [255, 255, 255],
-      );
+      Vibration.vibrate(pattern: [0, 200, 120, 200], intensities: [255, 255]);
     }
   }
 
-  // tambah hitungan
+  // =======================
+  // COUNTER LOGIC
+  // =======================
   void increment() {
     beadController.forward(from: 0);
-
     setState(() => counter++);
 
-    if (counter >= target) {
-      vibrateStrong3x();
+    if (target > 0 && counter >= target) {
+      vibrateStrong();
       counter = 0;
     } else if (vibration) {
       vibrateSoft();
     }
   }
 
-  // kurangi hitungan
   void decrement() {
     if (counter > 0) {
       beadController.forward(from: 0);
@@ -94,13 +93,60 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
     }
   }
 
-  // reset
   void reset() {
-    vibrateStrong3x();
+    vibrateStrong();
     setState(() => counter = 0);
   }
 
-  // UI TASBIH
+  // =======================
+  // SET TARGET MANUAL
+  // =======================
+  void setTargetDialog() {
+    final controller = TextEditingController(text: target.toString());
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A2036),
+        title: const Text(
+          "Set Target Tasbih",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Masukkan angka bebas",
+            hintStyle: TextStyle(color: Colors.white54),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text);
+              if (value != null && value > 0) {
+                setState(() {
+                  target = value;
+                  counter = 0;
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: const Text("Simpan"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =======================
+  // UI
+  // =======================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,7 +168,7 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
 
               const SizedBox(height: 40),
 
-              // counter display
+              // COUNTER
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 padding: const EdgeInsets.all(35),
@@ -131,12 +177,6 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
                     colors: [Color(0xFF8A2EFF), Color(0xFF6100FF)],
                   ),
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.purple.withOpacity(0.4),
-                      blurRadius: 25,
-                    ),
-                  ],
                 ),
                 child: Text(
                   "$counter",
@@ -150,10 +190,10 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
 
               const SizedBox(height: 40),
 
-              // ANIMASI BIJI TASBIH
+              // BIJI TASBIH
               AnimatedBuilder(
                 animation: beadController,
-                builder: (context, child) {
+                builder: (_, child) {
                   return Transform.rotate(
                     angle: beadController.value,
                     child: child,
@@ -164,18 +204,11 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
                   child: Container(
                     width: 160,
                     height: 160,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [Color(0xFF9C27FF), Color(0xFF6200EA)],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.purple.withOpacity(0.5),
-                          blurRadius: 30,
-                          spreadRadius: 2,
-                        ),
-                      ],
                     ),
                     child: const Icon(Icons.add, size: 80, color: Colors.white),
                   ),
@@ -184,83 +217,55 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
 
               const SizedBox(height: 30),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    // pilih target
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Target:",
-                          style: TextStyle(color: Colors.white, fontSize: 17),
-                        ),
-
-                        const SizedBox(width: 15),
-
-                        DropdownButton<int>(
-                          dropdownColor: Color(0xFF1A2036),
-                          value: target,
-                          style: const TextStyle(color: Colors.white),
-                          items: [11, 33, 100, 300].map((e) {
-                            return DropdownMenuItem(
-                              value: e,
-                              child: Text(
-                                "$e",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (v) {
-                            if (v != null) setState(() => target = v);
-                          },
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // reset + vibration toggle
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: reset,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text("Reset"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 25,
-                              vertical: 14,
-                            ),
-                          ),
-                        ),
-
-                        Row(
-                          children: [
-                            const Text(
-                              "Vibration",
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            Switch(
-                              value: vibration,
-                              activeColor: Colors.greenAccent,
-                              onChanged: (v) => setState(() => vibration = v),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              // TARGET SETTING
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Target: $target",
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  const SizedBox(width: 12),
+                  TextButton(
+                    onPressed: setTargetDialog,
+                    child: const Text("Ubah"),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 20),
 
-              Text(
-                "Gunakan tombol volume untuk /menam                       bah / mengurangi.",
+              // RESET + VIBRATION
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: reset,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text("Reset"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      const Text(
+                        "Vibration",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      Switch(
+                        value: vibration,
+                        onChanged: (v) => setState(() => vibration = v),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 25),
+
+              const Text(
+                "Gunakan tombol volume untuk menambah / mengurangi",
                 style: TextStyle(color: Colors.white54, fontSize: 12),
               ),
 
