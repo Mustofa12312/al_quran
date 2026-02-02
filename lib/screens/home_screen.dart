@@ -54,7 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Background,
-      appBar: _buildAppBar(), // ✅ AMAN
+      appBar: selectedIndex == 2 ? null : _buildAppBar(),
+      // ✅ AMAN
       body: pages[selectedIndex],
 
       bottomNavigationBar: BottomNavigationBar(
