@@ -2,8 +2,8 @@ import 'package:al_quran_fix/globals.dart';
 import 'package:al_quran_fix/models/surah.dart';
 import 'package:al_quran_fix/screens/detail_screen.dart';
 import 'package:al_quran_fix/screens/search_screen.dart';
-import 'package:al_quran_fix/tabs/Hijb_tab.dart';
-import 'package:al_quran_fix/tabs/Page_tab.dart';
+import 'package:al_quran_fix/tabs/hijb_tab.dart';
+import 'package:al_quran_fix/tabs/page_tab.dart';
 import 'package:al_quran_fix/tabs/surah_tab.dart';
 import 'package:al_quran_fix/tabs/tasbih_tab.dart';
 import "package:al_quran_fix/tabs/para_tab.dart";
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Background,
+      backgroundColor: backgroundColor,
       appBar: selectedIndex == 2 ? null : _buildAppBar(),
       // ✅ AMAN
       body: pages[selectedIndex],
@@ -78,8 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   BottomNavigationBarItem _navItem(String icon) {
     return BottomNavigationBarItem(
-      icon: SvgPicture.asset(icon, color: textt),
-      activeIcon: SvgPicture.asset(icon, color: Primary),
+      icon: SvgPicture.asset(
+        icon,
+        colorFilter: ColorFilter.mode(textt, BlendMode.srcIn),
+      ),
+      activeIcon: SvgPicture.asset(
+        icon,
+        colorFilter: ColorFilter.mode(Primary, BlendMode.srcIn),
+      ),
       label: "",
     );
   }
@@ -103,7 +109,7 @@ class _HomeBody extends StatelessWidget {
             const SliverToBoxAdapter(child: _GreetingSection()),
             SliverAppBar(
               pinned: true,
-              backgroundColor: Background,
+              backgroundColor: backgroundColor,
               elevation: 0,
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(0),
@@ -173,7 +179,7 @@ class _HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Background,
+      backgroundColor: backgroundColor,
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Row(
@@ -202,7 +208,7 @@ class _HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                 context,
                 MaterialPageRoute(builder: (_) => SearchScreen(allSurah: all)),
               );
-              if (picked != null) {
+              if (picked != null && context.mounted) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -238,7 +244,7 @@ class _HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                   Switch(
-                    activeColor: Primary,
+                    activeColor: Primary, // ignore: deprecated_member_use
                     value: showTranslation,
                     onChanged: (v) {
                       setSheet(() => showTranslation = v);

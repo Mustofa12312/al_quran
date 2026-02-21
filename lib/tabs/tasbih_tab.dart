@@ -56,13 +56,13 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
 
   // ================= VIBRATION =================
   Future<void> softVibrate() async {
-    if (vibration && (await Vibration.hasVibrator() ?? false)) {
+    if (vibration && (await Vibration.hasVibrator() == true)) {
       Vibration.vibrate(duration: 40);
     }
   }
 
   Future<void> strongVibrate() async {
-    if (await Vibration.hasVibrator() ?? false) {
+    if (await Vibration.hasVibrator() == true) {
       Vibration.vibrate(pattern: [0, 120, 80, 120]);
     }
   }
@@ -197,7 +197,7 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
                               color: const Color(0xFF9055FF),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(.4),
+                                  color: Colors.black.withValues(alpha: .4),
                                   blurRadius: 20,
                                   offset: const Offset(0, 10),
                                 ),
@@ -240,7 +240,9 @@ class _TasbihTabState extends State<TasbihTab> with TickerProviderStateMixin {
                           ),
                           Switch(
                             value: vibration,
-                            activeColor: const Color(0xFF9055FF),
+                            activeColor: const Color(
+                              0xFF9055FF,
+                            ), // ignore: deprecated_member_use
                             onChanged: (v) => setState(() => vibration = v),
                           ),
                         ],

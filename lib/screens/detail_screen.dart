@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:al_quran_fix/globals.dart';
 import 'package:al_quran_fix/models/ayat.dart';
 import 'package:al_quran_fix/models/surah.dart';
-import 'package:al_quran_fix/screens/search_screen.dart';
+// import 'package:al_quran_fix/screens/search_screen.dart';
 import 'package:al_quran_fix/services/bookmark_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,20 +19,18 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   final ScrollController _scrollController = ScrollController();
-  bool autoScroll = false;
-  double scrollSpeed = 25;
 
-  // ================================================================
-  //                         AUTO SCROLL (FIX)
-  // ================================================================
+  bool autoScroll = false;
+
+  // ======================================================
+  // AUTO SCROLL
+  // ======================================================
   void startAutoScroll() async {
     autoScroll = true;
     setState(() {});
 
     while (autoScroll) {
       await Future.delayed(const Duration(milliseconds: 120));
-
-      // Fix utama → jangan scroll sebelum controller terpasang
       if (!_scrollController.hasClients) continue;
 
       final max = _scrollController.position.maxScrollExtent;
@@ -44,7 +42,7 @@ class _DetailScreenState extends State<DetailScreen> {
       }
 
       _scrollController.animateTo(
-        now + scrollSpeed,
+        now + autoScrollSpeed,
         duration: const Duration(milliseconds: 120),
         curve: Curves.linear,
       );
@@ -56,59 +54,77 @@ class _DetailScreenState extends State<DetailScreen> {
     setState(() {});
   }
 
-  void showScrollMenu() {
+  // ======================================================
+  // FONT & SCROLL MENU
+  // ======================================================
+  void showFontMenu() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF10172D),
+      backgroundColor: Gray,
       builder: (_) {
         return StatefulBuilder(
-          builder: (context, refresh) {
+          builder: (_, setSheet) {
             return Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "Auto Scroll",
+                    "Pengaturan Tampilan",
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   const SizedBox(height: 20),
 
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 12,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      autoScroll ? stopAutoScroll() : startAutoScroll();
+                  _slider(
+                    label: "Ukuran Arab",
+                    value: arabFontSize,
+                    min: 22,
+                    max: 48,
+                    onChanged: (v) {
+                      arabFontSize = v;
+                      setSheet(() {});
+                      setState(() {});
                     },
-                    child: Text(
-                      autoScroll ? "Stop" : "Start",
-                      style: const TextStyle(color: Colors.white),
-                    ),
                   ),
 
-                  const SizedBox(height: 25),
-
-                  Text(
-                    "Kecepatan Scroll",
-                    style: GoogleFonts.poppins(color: Colors.white70),
+                  _slider(
+                    label: "Ukuran Terjemah",
+                    value: translationFontSize,
+                    min: 12,
+                    max: 28,
+                    onChanged: (v) {
+                      translationFontSize = v;
+                      setSheet(() {});
+                      setState(() {});
+                    },
                   ),
-                  Slider(
-                    min: 5,
-                    max: 70,
-                    divisions: 12,
-                    activeColor: Primary,
-                    value: scrollSpeed,
-                    onChanged: (v) => refresh(() => scrollSpeed = v),
+
+                  _slider(
+                    label: "Jarak Ayat",
+                    value: ayahSpacing,
+                    min: 10,
+                    max: 40,
+                    onChanged: (v) {
+                      ayahSpacing = v;
+                      setSheet(() {});
+                      setState(() {});
+                    },
+                  ),
+
+                  _slider(
+                    label: "Kecepatan Scroll",
+                    value: autoScrollSpeed,
+                    min: 10,
+                    max: 80,
+                    onChanged: (v) {
+                      autoScrollSpeed = v;
+                      setSheet(() {});
+                    },
                   ),
                 ],
               ),
@@ -119,41 +135,62 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  // ================================================================
-  //                        LOAD SURAH DATA
-  // ================================================================
+  Widget _slider({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: GoogleFonts.poppins(color: Colors.white70)),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          activeColor: Primary,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  // ======================================================
+  // LOAD DATA
+  // ======================================================
   Future<Surah> loadSurah() async {
-    String data = await rootBundle.loadString(
+    final data = await rootBundle.loadString(
       "assets/datas/surah/${widget.noSurah}.json",
     );
     return Surah.fromJson(json.decode(data));
   }
 
-  // ================================================================
-  //                             UI
-  // ================================================================
+  // ======================================================
+  // UI
+  // ======================================================
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Surah>(
       future: loadSurah(),
-      builder: (context, snap) {
+      builder: (_, snap) {
         if (!snap.hasData) {
-          return Scaffold(backgroundColor: Background);
+          return Scaffold(backgroundColor: backgroundColor);
         }
 
         final surah = snap.data!;
 
         return Scaffold(
-          backgroundColor: Background,
-          appBar: buildAppBar(surah),
-
+          backgroundColor: backgroundColor,
+          appBar: _buildAppBar(surah),
           body: ListView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 24),
             itemCount: surah.ayat!.length + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) return buildHeader(surah);
-              return buildAyat(surah.ayat![index - 1]);
+            itemBuilder: (_, i) {
+              if (i == 0) return _buildHeader(surah);
+              return _buildAyat(surah.ayat![i - 1]);
             },
           ),
         );
@@ -161,76 +198,39 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  // ================================================================
-  //                             APP BAR
-  // ================================================================
-  AppBar buildAppBar(Surah surah) {
+  // ======================================================
+  // APP BAR
+  // ======================================================
+  AppBar _buildAppBar(Surah surah) {
     return AppBar(
-      backgroundColor: Background,
+      backgroundColor: backgroundColor,
       elevation: 0,
-      titleSpacing: 0,
-      title: Row(
-        children: [
-          // IconButton(
-          //   onPressed: () => Navigator.pop(context),
-          //   icon: SvgPicture.asset("assets/svgs/kembali.svg"),
-          // ),
-          SizedBox(width: 25),
-          Text(
-            surah.namaLatin,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const Spacer(),
-
-          // SEARCH
-          IconButton(
-            onPressed: () async {
-              String data = await rootBundle.loadString(
-                "assets/datas/listsurah.json",
-              );
-              List<Surah> all = surahFromJson(data);
-
-              final picked = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SearchScreen(allSurah: all)),
-              );
-
-              if (picked != null) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DetailScreen(noSurah: picked),
-                  ),
-                );
-              }
-            },
-            icon: SvgPicture.asset("assets/svgs/cari.svg"),
-          ),
-
-          IconButton(
-            onPressed: showScrollMenu,
-            icon: Icon(
-              autoScroll ? Icons.pause_circle : Icons.play_circle_fill,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-        ],
+      title: Text(
+        surah.namaLatin,
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.text_fields),
+          onPressed: showFontMenu,
+        ),
+        IconButton(
+          icon: Icon(autoScroll ? Icons.pause_circle : Icons.play_circle_fill),
+          onPressed: autoScroll ? stopAutoScroll : startAutoScroll,
+        ),
+      ],
     );
   }
 
-  // ================================================================
-  //                         HEADER SURAH
-  // ================================================================
-  Widget buildHeader(Surah s) {
+  // ======================================================
+  // HEADER
+  // ======================================================
+  Widget _buildHeader(Surah s) {
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 25),
+      padding: const EdgeInsets.only(top: 20, bottom: 30),
       child: Column(
         children: [
           Text(
@@ -241,23 +241,13 @@ class _DetailScreenState extends State<DetailScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
-          const SizedBox(height: 6),
-
-          Text(
-            s.arti,
-            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 18),
-          ),
-
-          const SizedBox(height: 10),
-
+          Text(s.arti, style: GoogleFonts.poppins(color: Colors.white70)),
+          const SizedBox(height: 8),
           Text(
             "${s.tempatTurun.name} • ${s.jumlahAyat} Ayat",
             style: GoogleFonts.poppins(color: textt),
           ),
-
           const SizedBox(height: 25),
-
           if (s.nomor != 1 && s.nomor != 9)
             SvgPicture.asset("assets/svgs/bismillah.svg", height: 55),
         ],
@@ -265,111 +255,81 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  // ================================================================
-  //                    AYAT + BOOKMARK (Fix Arabic Font)
-  // ================================================================
-  Widget buildAyat(Ayat ayat) {
+  // ======================================================
+  // AYAT
+  // ======================================================
+  Widget _buildAyat(Ayat ayat) {
     return FutureBuilder<bool>(
       future: BookmarkService.isBookmarked(widget.noSurah, ayat.nomor),
-      builder: (context, snap) {
-        bool active = snap.data ?? false;
+      builder: (_, snap) {
+        final active = snap.data ?? false;
 
         return Padding(
-          padding: const EdgeInsets.only(top: 28),
+          padding: EdgeInsets.only(top: ayahSpacing),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // TOP BAR
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Gray,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    // AYAT NUMBER
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Primary,
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      child: Center(
-                        child: Text(
-                          "${ayat.nomor}",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
+              // HEADER AYAT
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Primary,
+                      borderRadius: BorderRadius.circular(50),
                     ),
-
-                    const Spacer(),
-                    const Icon(Icons.share, color: Colors.white),
-                    const SizedBox(width: 16),
-                    const Icon(
-                      Icons.play_circle_outline,
-                      color: Colors.white,
-                      size: 26,
+                    child: Text(
+                      toArabicNumber(ayat.nomor),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                     ),
-                    const SizedBox(width: 16),
-
-                    GestureDetector(
-                      onTap: () async {
-                        if (active) {
-                          await BookmarkService.removeBookmark(
-                            widget.noSurah,
-                            ayat.nomor,
-                          );
-                        } else {
-                          await BookmarkService.addBookmark(
-                            widget.noSurah,
-                            ayat.nomor,
-                            ayat.ar,
-                          );
-                        }
-                        setState(() {});
-                      },
-                      child: Icon(
-                        active ? Icons.bookmark : Icons.bookmark_border,
-                        color: active ? Primary : Colors.white,
-                        size: 28,
-                      ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(
+                      active ? Icons.bookmark : Icons.bookmark_border,
+                      color: active ? Primary : Colors.white,
                     ),
-                  ],
-                ),
+                    onPressed: () async {
+                      active
+                          ? await BookmarkService.removeBookmark(
+                              widget.noSurah,
+                              ayat.nomor,
+                            )
+                          : await BookmarkService.addBookmark(
+                              widget.noSurah,
+                              ayat.nomor,
+                              ayat.ar,
+                            );
+                      setState(() {});
+                    },
+                  ),
+                ],
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
 
-              // ARABIC TEXT (Scheherazade Font)
+              // ARAB
               SelectableText(
                 ayat.ar,
                 textAlign: TextAlign.right,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: "Scheherazade",
-                  fontSize: 28,
-                  height: 1.5,
+                  fontSize: arabFontSize,
+                  height: lineSpacing,
                   color: Colors.white,
                 ),
               ),
 
               const SizedBox(height: 12),
 
-              // TRANSLATION
+              // TERJEMAH
               if (showTranslation)
                 SelectableText(
                   ayat.idn,
                   textAlign: TextAlign.justify,
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    height: 1.6,
+                    fontSize: translationFontSize,
+                    height: lineSpacing,
                     color: textt,
                   ),
                 ),

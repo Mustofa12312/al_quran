@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/juz.dart';
 import '../globals.dart';
@@ -17,18 +16,16 @@ class _DetailJuzScreenState extends State<DetailJuzScreen> {
   final ScrollController _scrollController = ScrollController();
 
   bool autoScroll = false;
-  double scrollSpeed = 25;
 
   // ============================================================
-  //                      AUTO SCROLL (FIX)
+  //                      AUTO SCROLL
   // ============================================================
   void startAutoScroll() async {
     autoScroll = true;
     setState(() {});
 
     while (autoScroll) {
-      await Future.delayed(const Duration(milliseconds: 110));
-
+      await Future.delayed(const Duration(milliseconds: 120));
       if (!_scrollController.hasClients) continue;
 
       final max = _scrollController.position.maxScrollExtent;
@@ -40,7 +37,7 @@ class _DetailJuzScreenState extends State<DetailJuzScreen> {
       }
 
       _scrollController.animateTo(
-        now + scrollSpeed,
+        now + autoScrollSpeed,
         duration: const Duration(milliseconds: 120),
         curve: Curves.linear,
       );
@@ -53,59 +50,76 @@ class _DetailJuzScreenState extends State<DetailJuzScreen> {
   }
 
   // ============================================================
-  //                AUTO SCROLL MENU (BOTTOM SHEET)
+  //                    FONT SIZE MENU
   // ============================================================
-  void openSpeedMenu(BuildContext context) {
+  void showFontMenu() {
     showModalBottomSheet(
-      backgroundColor: const Color(0xFF121931),
       context: context,
+      backgroundColor: Gray,
       builder: (_) {
         return StatefulBuilder(
           builder: (_, setSheet) {
             return Padding(
-              padding: const EdgeInsets.all(25),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "Auto Scroll",
+                    "Pengaturan Teks",
                     style: GoogleFonts.poppins(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
                       fontSize: 18,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF9055FF),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      autoScroll ? stopAutoScroll() : startAutoScroll();
-                    },
-                    child: Text(
-                      autoScroll ? "Stop" : "Start",
-                      style: const TextStyle(color: Colors.white),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
                   const SizedBox(height: 20),
+
+                  // Arab
                   Text(
-                    "Kecepatan Scroll",
-                    style: GoogleFonts.poppins(color: Colors.white),
+                    "Teks Arab",
+                    style: GoogleFonts.poppins(color: Colors.white70),
+                  ),
+                  Slider(
+                    min: 20,
+                    max: 48,
+                    activeColor: Primary,
+                    value: arabFontSize,
+                    onChanged: (v) {
+                      setSheet(() => arabFontSize = v);
+                      setState(() {});
+                    },
                   ),
 
+                  // Terjemah
+                  Text(
+                    "Terjemahan",
+                    style: GoogleFonts.poppins(color: Colors.white70),
+                  ),
                   Slider(
-                    min: 5,
-                    max: 80,
-                    divisions: 15,
-                    activeColor: const Color(0xFF9055FF),
-                    value: scrollSpeed,
+                    min: 12,
+                    max: 28,
+                    activeColor: Primary,
+                    value: translationFontSize,
                     onChanged: (v) {
-                      setSheet(() => scrollSpeed = v);
-                      setState(() => scrollSpeed = v);
+                      setSheet(() => translationFontSize = v);
+                      setState(() {});
+                    },
+                  ),
+
+                  // Jarak Ayat
+                  Text(
+                    "Jarak Ayat",
+                    style: GoogleFonts.poppins(color: Colors.white70),
+                  ),
+                  Slider(
+                    min: 6,
+                    max: 30,
+                    activeColor: Primary,
+                    value: ayahSpacing,
+                    onChanged: (v) {
+                      setSheet(() => ayahSpacing = v);
+                      setState(() {});
                     },
                   ),
                 ],
@@ -125,32 +139,31 @@ class _DetailJuzScreenState extends State<DetailJuzScreen> {
     final verses = widget.juz.verses;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121931),
+      backgroundColor: backgroundColor,
 
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121931),
+        backgroundColor: backgroundColor,
         elevation: 0,
-        title: Row(
-          children: [
-            Text(
-              "Juz ${widget.juz.juz}",
-              style: GoogleFonts.poppins(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const Spacer(),
-            IconButton(
-              onPressed: () => openSpeedMenu(context),
-              icon: Icon(
-                autoScroll ? Icons.pause_circle : Icons.play_circle_fill,
-                color: Colors.white,
-                size: 30,
-              ),
-            ),
-          ],
+        title: Text(
+          "Juz ${widget.juz.juz}",
+          style: GoogleFonts.poppins(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.text_fields),
+            onPressed: showFontMenu,
+          ),
+          IconButton(
+            icon: Icon(
+              autoScroll ? Icons.pause_circle : Icons.play_circle_fill,
+            ),
+            onPressed: autoScroll ? stopAutoScroll : startAutoScroll,
+          ),
+        ],
       ),
 
       body: ListView.builder(
@@ -158,7 +171,7 @@ class _DetailJuzScreenState extends State<DetailJuzScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         itemCount: verses.length + 1,
         itemBuilder: (context, index) {
-          if (index == 0) return _header(widget.juz);
+          if (index == 0) return _header();
           return _ayatItem(verses[index - 1]);
         },
       ),
@@ -168,13 +181,13 @@ class _DetailJuzScreenState extends State<DetailJuzScreen> {
   // ============================================================
   //                       HEADER JUZ
   // ============================================================
-  Widget _header(Juz juz) {
+  Widget _header() {
     return Padding(
       padding: const EdgeInsets.only(top: 20, bottom: 30),
       child: Column(
         children: [
           Text(
-            "Juz ${juz.juz}",
+            "Juz ${widget.juz.juz}",
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontSize: 28,
@@ -183,8 +196,8 @@ class _DetailJuzScreenState extends State<DetailJuzScreen> {
           ),
           const SizedBox(height: 5),
           Text(
-            "${juz.totalVerses} Ayat",
-            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 16),
+            "${widget.juz.totalVerses} Ayat",
+            style: GoogleFonts.poppins(color: Colors.white70),
           ),
         ],
       ),
@@ -192,74 +205,55 @@ class _DetailJuzScreenState extends State<DetailJuzScreen> {
   }
 
   // ============================================================
-  //                  ITEM AYAT (FONT ARAB FIX)
+  //                       AYAT ITEM
   // ============================================================
   Widget _ayatItem(Verse ayah) {
     return Padding(
-      padding: const EdgeInsets.only(top: 25),
+      padding: EdgeInsets.only(top: ayahSpacing),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // HEADER AYAT
+          // Nomor Ayat
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E2849),
+              color: Gray,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 27,
-                  height: 27,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF9055FF),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Center(
-                    child: Text(
-                      "${ayah.numberInSurah ?? ayah.number}",
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                const Icon(Icons.share, color: Colors.white),
-                const SizedBox(width: 16),
-                const Icon(Icons.play_circle_outline, color: Colors.white),
-                const SizedBox(width: 16),
-                const Icon(Icons.bookmark_add_outlined, color: Colors.white),
-              ],
+            child: Text(
+              toArabicNumber(ayah.numberInSurah ?? ayah.number ?? 0),
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 12),
 
-          // ARABIC TEXT — FIX (Scheherazade)
+          // Arab
           SelectableText(
             ayah.arab,
             textAlign: TextAlign.right,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: "Scheherazade",
-              fontSize: 30,
-              height: 1.5,
+              fontSize: arabFontSize,
+              height: lineSpacing,
               color: Colors.white,
             ),
           ),
 
           const SizedBox(height: 10),
 
-          // TERJEMAHAN (optional)
+          // Terjemah
           if (showTranslation && ayah.translation.isNotEmpty)
             SelectableText(
               ayah.translation,
               style: GoogleFonts.poppins(
-                color: Colors.white70,
-                fontSize: 14,
-                height: 1.6,
+                fontSize: translationFontSize,
+                height: lineSpacing,
+                color: textt,
               ),
             ),
         ],

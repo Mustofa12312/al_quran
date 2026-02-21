@@ -29,7 +29,7 @@ class SurahTab extends StatelessWidget {
             surah: snapshot.data!.elementAt(index),
           ),
           separatorBuilder: (context, index) =>
-              Divider(color: Color(0xff7B80AD).withOpacity(.2)),
+              Divider(color: const Color(0xff7B80AD).withValues(alpha: .2)),
           itemCount: snapshot.data!.length,
         );
       },
